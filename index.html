@@ -27,6 +27,26 @@
             </div>
         </div>
         <script>
+            (()=>{const caps=[];window._caps=caps;
+            for(const C of [WebGLRenderingContext,WebGL2RenderingContext]){
+            const c=C.prototype.compressedTexImage2D;
+            C.prototype.compressedTexImage2D=function(t,l,f,w,h,b,d,...r){
+            if(l===0&&w>=32&&d&&d.byteLength)caps.push({k:'c',f,w,h,d:d.slice()});
+            return c.call(this,t,l,f,w,h,b,d,...r)};
+            const x=C.prototype.texImage2D;
+            C.prototype.texImage2D=function(t,l,fi,w,h,b,f,ty,d){
+            if(arguments.length>=9&&l===0&&d&&d.byteLength&&w>=32&&f===0x1908)caps.push({k:'r',f,w,h,d:d.slice()});
+            return x.apply(this,arguments)};
+            }
+            window.dl=async()=>{
+            const meta=caps.map(c=>({k:c.k,f:c.f,w:c.w,h:c.h,n:c.d.byteLength}));
+            const hb=new TextEncoder().encode(JSON.stringify(meta));
+            const blob=await new Response(new Blob([new Uint32Array([hb.length]),hb,...caps.map(c=>c.d)]).stream().pipeThrough(new CompressionStream('gzip'))).blob();
+            const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='tex_capture.bin.gz';a.click();
+            console.log(caps.length,'textures');};
+            })();
+            </script>
+        <script>
             const hideFullScreenButton = "";
             const buildUrl = "Build/";
             const loaderUrl = buildUrl + "Webgl.loader.js";
