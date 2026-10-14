@@ -26,7 +26,13 @@
                 <div class="spinner"></div>
             </div>
         </div>
-        
+        <script>
+        (()=>{const w=WebAssembly,oi=w.instantiate,os=w.instantiateStreaming;
+        const grab=r=>{const i=r.instance||r;if(i&&i.exports){window._ex=i.exports;window._tbl=i.exports.Wi;window._mem=i.exports.yi;}return r};
+        w.instantiate=function(...a){return oi.apply(this,a).then(grab)};
+        if(os)w.instantiateStreaming=function(...a){return os.apply(this,a).then(grab)};
+        })();
+        </script>
         <script>
             const hideFullScreenButton = "";
             const buildUrl = "Build/";
