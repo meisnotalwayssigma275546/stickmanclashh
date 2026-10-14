@@ -117,7 +117,7 @@
 
     const status = el("div", { className: "status" });
     const minBtn = el("button", { className: "min", textContent: "–" });
-    const head = el("div", { className: "h" }, [el("span", { textContent: "Stickman Mod" }), minBtn]);
+    const head = el("div", { className: "h" }, [el("span", { textContent: "Stickman Mod v2" }), minBtn]);
 
     // --- keybind ---
     let binding = false;
