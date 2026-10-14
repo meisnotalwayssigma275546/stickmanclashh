@@ -21,6 +21,9 @@
     // name -> function table index (from your list)
     const A = [["ArmCannonGreen",9970],["ArmCannonRedLaser",9974],["AxeExplosion",9990],["BatteAxeHit",9994],["BattleAxeLaunch",10011],["BattleAxeWind",10031],["BazookaBanana",10039],["BladesAbility",10052],["BoomerangLaunch",10084],["BootsDash",10105],["BowShot",10121],["BoxingDash",10135],["clawMuliAttack",10139],["CardAbility",10147],["CircularSawGrow",10170],["CrossBowShot",10186],["DaggerDash",10199],["saberDoubleShot",10218],["saberRotate",10222],["saberStance",10226],["FlailExplosion",10246],["flashlightAb",10250],["flashLightAb2",10256],["GauntletPower",10284],["GrappinShot",10300],["GuitareAbilities",10306],["gunTrileShot",10331],["HammerRotation",10345],["InstanteProjectil",10374],["IronHandAbilities",10378],["LampAbilities",10403],["LanceRotOrb",10425],["LaserswordAbilities",10429],["LaserswordLaunch",10442],["LollipopGrab",10457],["LaunchMagnet",10463],["magnetGrab",10477],["polariseMagnet",10483],["PaintbrushInk",10498],["InstantReUsed",10503],["PortalGunShot",10531],["PotionGeant",10551],["ShieldGrow",10588],["ShieldLaunch",10592],["FireDash",10596],["ShootSniper",10609],["MaceAb",10630],["SpearAttack",10645],["StaffAbility",10659],["SwordDash",10684],["swordGrow",10688],["obTurbo",11940],["overBoardStance",11945]];
 
+    // helper functions that are not real weapon abilities: still recorded and exported, but no tile
+    const HIDE = new Set(["InstanteProjectil"]);
+
     // wraps a table function with a 6-argument logger; the wasm link check rejects any
     // function whose signature differs, so a bad one throws here instead of crashing later
     const hook = (idx, n, cb) => {
@@ -117,7 +120,7 @@
 
     const status = el("div", { className: "status" });
     const minBtn = el("button", { className: "min", textContent: "–" });
-    const head = el("div", { className: "h" }, [el("span", { textContent: "Stickman Mod v2" }), minBtn]);
+    const head = el("div", { className: "h" }, [el("span", { textContent: "Stickman Mod v3" }), minBtn]);
 
     // --- keybind ---
     let binding = false;
@@ -169,7 +172,7 @@
       shown = sig;
       grid.innerHTML = "";
       let n = 0;
-      Object.keys(REC).forEach((nm) => REC[nm].forEach((e, sel) => {
+      Object.keys(REC).filter((nm) => !HIDE.has(nm)).forEach((nm) => REC[nm].forEach((e, sel) => {
         const k = nm + "|" + sel;
         const t = el("div", { className: "tile" + (S.pick === k ? " sel" : ""), title: k + "  (double-click to rename)" },
           [el("span", { textContent: S.names[k] || short(nm) }), el("em", { textContent: "#" + sel })]);
