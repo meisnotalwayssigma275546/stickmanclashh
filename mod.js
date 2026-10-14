@@ -37,10 +37,18 @@
     const REC = {};          // name -> Map(selector -> {a: args})   (selector = argument 3)
     const ORIG = {};         // name -> the game's untouched function
     let sig = 0;             // bumps when a new ability variant is learned
+    const LOG = new Map();   // optional full log: "name|args" -> {fn, a, n}
+    let logging = false;
     const learn = (nm, a) => {
       const m = REC[nm] || (REC[nm] = new Map()), s = a[3];
-      if (!m.has(s)) { if (m.size >= 8) m.delete(m.keys().next().value); sig++; }
-      m.set(s, { a });
+      let e = m.get(s);
+      if (!e) { if (m.size >= 8) m.delete(m.keys().next().value); e = { a, n: 0 }; m.set(s, e); sig++; }
+      e.a = a; e.n++;
+      if (logging) {
+        const k = nm + "|" + a.join(",");
+        const l = LOG.get(k);
+        if (l) l.n++; else if (LOG.size < 3000) LOG.set(k, { fn: nm, a, n: 1 });
+      }
     };
     const skipped = [];
     A.forEach(([nm, idx]) => {
@@ -125,12 +133,12 @@
 
     // --- spam toggle + speed ---
     const spamSw = el("div", { className: "sw" }, [el("i")]);
-    const input = el("input", { type: "number", min: 20, max: 2000, step: 10, value: S.rate });
-    const setRate = (v) => { v = Math.floor(+v); if (!(v >= 20)) v = 20; if (v > 2000) v = 2000; S.rate = v; input.value = v; };
+    const input = el("input", { type: "number", min: 1, max: 2000, step: 1, value: S.rate });
+    const setRate = (v) => { v = Math.floor(+v); if (!(v >= 1)) v = 1; if (v > 2000) v = 2000; S.rate = v; input.value = v; };
     const minus = el("button", { textContent: "−" }), plus = el("button", { textContent: "+" });
     input.onchange = () => setRate(input.value);
-    minus.onclick = () => setRate(S.rate - 10);
-    plus.onclick = () => setRate(S.rate + 10);
+    minus.onclick = () => setRate(S.rate - (S.rate > 20 ? 10 : 1));
+    plus.onclick = () => setRate(S.rate + (S.rate >= 20 ? 10 : 1));
     const spamRow = el("div", { className: "card" }, [
       el("div", { className: "row" }, [
         el("div", { className: "lbl" }, [document.createTextNode("Spam while held"), el("small", { textContent: "repeat delay in ms" })]),
@@ -188,7 +196,52 @@
     fireBtn.onclick = doFire;
     forgetBtn.onclick = () => { Object.keys(REC).forEach((k) => delete REC[k]); sig++; status.textContent = "cleared"; };
 
-    const body = el("div", { className: "b" }, [keyRow, spamRow, pickRow, status]);
+    // --- export everything recorded (copy or .txt download) ---
+    const logSw = el("div", { className: "sw" }, [el("i")]);
+    logSw.onclick = () => {
+      logging = !logging; logSw.classList.toggle("on", logging);
+      status.textContent = logging ? "logging every call (can be heavy)" : "full log off";
+    };
+    const buildText = () => {
+      const out = ["# learned abilities: name | selector (arg 3) | args | calls"];
+      Object.keys(REC).forEach((nm) => REC[nm].forEach((e, sel) => out.push(nm + " | " + sel + " | " + e.a.join(",") + " | x" + e.n)));
+      if (LOG.size) {
+        out.push("", "# full call log: name | args | calls");
+        LOG.forEach((l) => out.push(l.fn + " | " + l.a.join(",") + " | x" + l.n));
+      }
+      return out.join("\n");
+    };
+    const copyFallback = (txt) => {
+      const t = document.createElement("textarea");
+      t.value = txt; document.body.appendChild(t); t.select();
+      let ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
+      t.remove(); status.textContent = ok ? "copied to clipboard" : "copy failed, use Save .txt";
+    };
+    const copyBtn = el("button", { className: "btn", textContent: "Copy log" });
+    copyBtn.onclick = () => {
+      const txt = buildText();
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(() => { status.textContent = "copied to clipboard"; }, () => copyFallback(txt));
+      } else copyFallback(txt);
+    };
+    const saveBtn = el("button", { className: "btn", textContent: "Save .txt" });
+    saveBtn.onclick = () => {
+      const a = el("a", { href: URL.createObjectURL(new Blob([buildText()], { type: "text/plain" })), download: "stickman-abilities.txt" });
+      document.body.appendChild(a); a.click(); a.remove();
+      status.textContent = "saved stickman-abilities.txt";
+    };
+    const exportRow = el("div", { className: "card" }, [
+      el("div", { className: "row" }, [
+        el("div", { className: "lbl" }, [document.createTextNode("Export recorded"), el("small", { textContent: "abilities and their calls" })]),
+        el("div", { className: "row", style: "gap:6px" }, [copyBtn, saveBtn])
+      ]),
+      el("div", { className: "row", style: "margin-top:8px" }, [
+        el("div", { className: "lbl" }, [document.createTextNode("Log every call"), el("small", { textContent: "adds all variants to the export" })]),
+        logSw
+      ])
+    ]);
+
+    const body = el("div", { className: "b" }, [keyRow, spamRow, pickRow, exportRow, status]);
     const panel = el("div", { className: "p" }, [head, body]);
     root.appendChild(el("style", { textContent: css }));
     root.appendChild(panel);
