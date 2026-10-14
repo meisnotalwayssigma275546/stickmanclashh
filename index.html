@@ -30,7 +30,7 @@
             (()=>{const caps=[],seen={},keys=new Set();let total=0;window._caps=caps;window._calls=seen;
             const P=[WebGLRenderingContext.prototype,WebGL2RenderingContext.prototype];
             const grab=(k,a,di,w,h,f)=>{const d=a[di];
-            if(a[1]!==0||!d||!d.byteLength||w<64||h<64||total>120e6)return;
+            if(a[1]!==0||!d||!d.byteLength||w<64||h<64||d.byteLength>6e6||total>80e6)return;
             const key=k+f+w+'x'+h+'@'+(a[2]|0)+','+(a[3]|0)+'#'+d.byteLength+':'+d[0]+','+d[d.byteLength>>1]+','+d[d.byteLength-1];
             if(keys.has(key))return;keys.add(key);total+=d.byteLength;
             caps.push({k,f,w,h,x:a[2]|0,y:a[3]|0,d:new Uint8Array(d.buffer,d.byteOffset,d.byteLength).slice()})};
