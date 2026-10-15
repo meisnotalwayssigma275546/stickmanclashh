@@ -1,9 +1,17 @@
 {
   "headers": [
     {
-      "source": "/Build/Webgl.wasm",
+      "source": "/Build/Webgl.wasm.br",
       "headers": [
+        { "key": "Content-Encoding", "value": "br" },
         { "key": "Content-Type", "value": "application/wasm" }
+      ]
+    },
+    {
+      "source": "/Build/Webgl.framework.js.br",
+      "headers": [
+        { "key": "Content-Encoding", "value": "br" },
+        { "key": "Content-Type", "value": "application/javascript" }
       ]
     }
   ]
