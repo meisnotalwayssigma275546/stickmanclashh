@@ -155,7 +155,7 @@
     spamSw.onclick = () => { S.spam = !S.spam; spamSw.classList.toggle("on", S.spam); };
 
     // --- calls per shot: each tap or repeat fires the ability this many times ---
-    const bin = el("input", { type: "number", min: 1, max: 100, step: 1, value: S.burst });
+    const bin = el("input", { type: "number", min: 1, max: 999999999999, step: 1, value: S.burst });
     const setBurst = (v) => { v = Math.floor(+v); if (!(v >= 1)) v = 1; if (v > 100) v = 100; S.burst = v; bin.value = v; };
     const bminus = el("button", { textContent: "−" }), bplus = el("button", { textContent: "+" });
     bin.onchange = () => setBurst(bin.value);
