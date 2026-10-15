@@ -1,21 +1,48 @@
 {
   "headers": [
     {
-      "source": "/Build/Webgl.wasm",
+      "source": "/Build/(.*)",
       "headers": [
-        { "key": "Content-Type", "value": "application/wasm" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
       ]
     },
     {
-      "source": "/Build/Webgl.framework.js",
+      "source": "/Build/(.*)\\.wasm",
       "headers": [
-        { "key": "Content-Type", "value": "application/javascript" }
+        {
+          "key": "Content-Type",
+          "value": "application/wasm"
+        }
       ]
     },
     {
-      "source": "/Build/Webgl.data",
+      "source": "/Build/(.*)\\.data",
       "headers": [
-        { "key": "Content-Type", "value": "application/octet-stream" }
+        {
+          "key": "Content-Type",
+          "value": "application/octet-stream"
+        }
+      ]
+    },
+    {
+      "source": "/Build/(.*)\\.framework\\.js",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/javascript"
+        }
+      ]
+    },
+    {
+      "source": "/Build/(.*)\\.loader\\.js",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/javascript"
+        }
       ]
     }
   ]
