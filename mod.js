@@ -14,7 +14,7 @@
     try { saved = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) {}
     const S = {
       key: saved.key || "z", spam: saved.spam !== false, rate: saved.rate || 100, burst: saved.burst || 1,
-      pick: saved.pick || "", names: saved.names || {}, nolim: !!saved.nolim
+      pick: saved.pick || "", names: saved.names || {}
     };
 
     // ================= ability icons (weapon icons, base64, offline) =================
@@ -36,21 +36,14 @@ const ICONS={"ArmCannonGreen":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACg
       return orig;
     };
 
-    const REC = {};          // name -> Map(selector -> {a: args, obj: thisPtr})
+    const REC = {};          // name -> Map(selector -> {a: args})
     const ORIG = {};         // name -> the game's untouched function
     let sig = 0;
-    const LOG = new Map();
-    let logging = false;
     const learn = (nm, a) => {
       const m = REC[nm] || (REC[nm] = new Map()), s = a[3];
       let e = m.get(s);
       if (!e) { if (m.size >= 8) m.delete(m.keys().next().value); e = { a, n: 0 }; m.set(s, e); sig++; }
-      e.a = a; e.n++; e.obj = a[0];
-      if (logging) {
-        const k = nm + "|" + a.join(",");
-        const l = LOG.get(k);
-        if (l) l.n++; else if (LOG.size < 3000) LOG.set(k, { fn: nm, a, n: 1 });
-      }
+      e.a = a; e.n++;
     };
     const skipped = [];
     A.forEach(([nm, idx]) => {
@@ -66,46 +59,6 @@ const ICONS={"ArmCannonGreen":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACg
       const e = REC[nm] && REC[nm].get(sel);
       if (!e) return "not learned yet: use it once in a match";
       try { ORIG[nm](...e.a); return "fired"; } catch (err) { return "ERR " + err.message; }
-    };
-
-    // ================= limiter probe =================
-    // Reads the ability object's own small int/bool fields right before and right after
-    // a fire, so you can see which field is the cooldown/charge gate without using the console.
-    const probe = (key) => {
-      const i = key.lastIndexOf("|"), nm = key.slice(0, i), sel = +key.slice(i + 1);
-      const e = REC[nm] && REC[nm].get(sel);
-      if (!e || !e.obj) return "not learned yet";
-      const addr = e.obj;
-      const read = () => Array.from(new Int32Array(_mem.buffer, addr, 64));
-      const before = read();
-      try { ORIG[nm](...e.a); } catch (err) { return "ERR " + err.message; }
-      return new Promise((res) => setTimeout(() => {
-        const after = read();
-        const changed = [];
-        before.forEach((v, idx2) => { if (v !== after[idx2]) changed.push([idx2 * 4, v, after[idx2]]); });
-        res({ addr, changed });
-      }, 80));
-    };
-
-    // When "no limiter" is on, before every fire we zero out any small bool/int
-    // field (value 0 or 1, offset < 256) on the ability object that the probe step
-    // flagged as changing. This is a heuristic: it clears likely "busy"/"used" flags
-    // right before firing instead of needing you to find the exact field by hand.
-    const watchedFlags = {}; // "name|sel" -> [byteOffsets]
-    const learnFlags = async (key) => {
-      const r = await probe(key);
-      if (typeof r === "string") return r;
-      const flags = r.changed.filter(([off, b, a]) => (b === 0 || b === 1) && (a === 0 || a === 1) && off < 256).map(([off]) => off);
-      watchedFlags[key] = flags;
-      return flags.length ? "watching " + flags.length + " flag(s) at +" + flags.join(", +") : "no boolean flags found (full log: " + JSON.stringify(r.changed) + ")";
-    };
-    const clearFlags = (key) => {
-      const i = key.lastIndexOf("|"), nm = key.slice(0, i), sel = +key.slice(i + 1);
-      const e = REC[nm] && REC[nm].get(sel);
-      const flags = watchedFlags[key];
-      if (!e || !e.obj || !flags || !flags.length) return;
-      const h = new Int32Array(_mem.buffer, e.obj, 64);
-      flags.forEach((off) => { h[off / 4] = 0; });
     };
     // ================= UI (liquid glass) =================
     const spring = "cubic-bezier(.34,1.56,.64,1)";
@@ -160,7 +113,7 @@ const ICONS={"ArmCannonGreen":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACg
 
     const status = el("div", { className: "status" });
     const minBtn = el("button", { className: "min", textContent: "–" });
-    const head = el("div", { className: "h" }, [el("span", { textContent: "Stickman Mod — beta" }), minBtn]);
+    const head = el("div", { className: "h" }, [el("span", { textContent: "Stickman Mod" }), minBtn]);
 
     // --- keybind ---
     let binding = false;
@@ -183,22 +136,13 @@ const ICONS={"ArmCannonGreen":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACg
     minus.onclick = () => setRate(S.rate - (S.rate > 20 ? 10 : 1));
     plus.onclick = () => setRate(S.rate + (S.rate >= 20 ? 10 : 1));
 
-    const bin = el("input", { type: "number", min: 1, max: 100, step: 1, value: S.burst });
-    const setBurst = (v) => { v = Math.floor(+v); if (!(v >= 1)) v = 1; if (v > 100) v = 100; S.burst = v; bin.value = v; };
+    const BURST_MAX = Number.MAX_SAFE_INTEGER; // 9007199254740991
+    const bin = el("input", { type: "number", min: 1, max: BURST_MAX, step: 1, value: S.burst });
+    const setBurst = (v) => { v = Math.floor(+v); if (!(v >= 1)) v = 1; if (v > BURST_MAX) v = BURST_MAX; S.burst = v; bin.value = v; };
     const bminus = el("button", { textContent: "−" }), bplus = el("button", { textContent: "+" });
     bin.onchange = () => setBurst(bin.value);
     bminus.onclick = () => setBurst(S.burst - (S.burst > 10 ? 10 : 1));
     bplus.onclick = () => setBurst(S.burst + (S.burst >= 10 ? 10 : 1));
-
-    const nolimSw = el("div", { className: "sw" }, [el("i")]);
-    const learnBtn = el("button", { className: "btn", textContent: "Learn limiter" });
-    nolimSw.onclick = () => { S.nolim = !S.nolim; nolimSw.classList.toggle("on", S.nolim); };
-    learnBtn.onclick = async () => {
-      if (!S.pick) { status.textContent = "pick an ability first"; return; }
-      status.textContent = "firing once to learn its limiter...";
-      const r = await learnFlags(S.pick);
-      status.textContent = typeof r === "string" ? r : r;
-    };
 
     const spamRow = el("div", { className: "card" }, [
       el("div", { className: "row" }, [
@@ -210,16 +154,8 @@ const ICONS={"ArmCannonGreen":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACg
         el("div", { className: "step" }, [minus, input, plus])
       ]),
       el("div", { className: "row", style: "margin-top:8px" }, [
-        el("div", { className: "lbl" }, [document.createTextNode("Calls per shot"), el("small", { textContent: "projectiles per press, 1 to 100" })]),
+        el("div", { className: "lbl" }, [document.createTextNode("Calls per shot"), el("small", { textContent: "projectiles per press" })]),
         el("div", { className: "step" }, [bminus, bin, bplus])
-      ]),
-      el("div", { className: "row", style: "margin-top:8px" }, [
-        el("div", { className: "lbl" }, [document.createTextNode("No limiter (beta)"), el("small", { textContent: "clears cooldown flags before firing" })]),
-        nolimSw
-      ]),
-      el("div", { className: "row", style: "margin-top:8px" }, [
-        el("div", { className: "lbl" }, [document.createTextNode("Probe current ability"), el("small", { textContent: "finds which flag blocks re-firing" })]),
-        learnBtn
       ])
     ]);
     spamSw.onclick = () => { S.spam = !S.spam; spamSw.classList.toggle("on", S.spam); };
@@ -247,7 +183,7 @@ const ICONS={"ArmCannonGreen":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACg
         const icon = ICONS[nm]
           ? el("img", { src: ICONS[nm], alt: "" })
           : el("div", { className: "ph", textContent: short(nm).slice(0, 2) });
-        const t = el("div", { className: "tile" + (S.pick === k ? " sel" : ""), title: k + (watchedFlags[k] ? " (limiter learned)" : "") },
+        const t = el("div", { className: "tile" + (S.pick === k ? " sel" : ""), title: k },
           [icon, el("span", { textContent: S.names[k] || short(nm) }), el("em", { textContent: "#" + sel })]);
         t.onclick = () => {
           S.pick = k;
@@ -266,60 +202,14 @@ const ICONS={"ArmCannonGreen":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACg
 
     const doFire = () => {
       if (!S.pick) { status.textContent = "pick an ability first"; return; }
-      if (S.nolim) clearFlags(S.pick);
       let r = "fired";
-      for (let i = 0; i < S.burst; i++) { if (S.nolim) clearFlags(S.pick); r = fire(S.pick); if (r !== "fired") break; }
+      for (let i = 0; i < S.burst; i++) { r = fire(S.pick); if (r !== "fired") break; }
       if (r !== "fired") status.textContent = r;
     };
     fireBtn.onclick = doFire;
     forgetBtn.onclick = () => { Object.keys(REC).forEach((k) => delete REC[k]); sig++; status.textContent = "cleared"; };
 
-    // --- export (unchanged) ---
-    const logSw = el("div", { className: "sw" }, [el("i")]);
-    logSw.onclick = () => {
-      logging = !logging; logSw.classList.toggle("on", logging);
-      status.textContent = logging ? "logging every call (can be heavy)" : "full log off";
-    };
-    const buildText = () => {
-      const out = ["# learned abilities: name | selector (arg 3) | args | calls"];
-      Object.keys(REC).forEach((nm) => REC[nm].forEach((e, sel) => out.push(nm + " | " + sel + " | " + e.a.join(",") + " | x" + e.n)));
-      if (LOG.size) {
-        out.push("", "# full call log: name | args | calls");
-        LOG.forEach((l) => out.push(l.fn + " | " + l.a.join(",") + " | x" + l.n));
-      }
-      return out.join("\n");
-    };
-    const copyFallback = (txt) => {
-      const t = document.createElement("textarea");
-      t.value = txt; document.body.appendChild(t); t.select();
-      let ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
-      t.remove(); status.textContent = ok ? "copied to clipboard" : "copy failed, use Save .txt";
-    };
-    const copyBtn = el("button", { className: "btn", textContent: "Copy log" });
-    copyBtn.onclick = () => {
-      const txt = buildText();
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(txt).then(() => { status.textContent = "copied to clipboard"; }, () => copyFallback(txt));
-      } else copyFallback(txt);
-    };
-    const saveBtn = el("button", { className: "btn", textContent: "Save .txt" });
-    saveBtn.onclick = () => {
-      const a = el("a", { href: URL.createObjectURL(new Blob([buildText()], { type: "text/plain" })), download: "stickman-abilities.txt" });
-      document.body.appendChild(a); a.click(); a.remove();
-      status.textContent = "saved stickman-abilities.txt";
-    };
-    const exportRow = el("div", { className: "card" }, [
-      el("div", { className: "row" }, [
-        el("div", { className: "lbl" }, [document.createTextNode("Export recorded"), el("small", { textContent: "abilities and their calls" })]),
-        el("div", { className: "row", style: "gap:6px" }, [copyBtn, saveBtn])
-      ]),
-      el("div", { className: "row", style: "margin-top:8px" }, [
-        el("div", { className: "lbl" }, [document.createTextNode("Log every call"), el("small", { textContent: "adds all variants to the export" })]),
-        logSw
-      ])
-    ]);
-
-    const body = el("div", { className: "b" }, [keyRow, spamRow, pickRow, exportRow, status]);
+    const body = el("div", { className: "b" }, [keyRow, spamRow, pickRow, status]);
     const panel = el("div", { className: "p" }, [head, body]);
     root.appendChild(el("style", { textContent: css }));
     root.appendChild(panel);
@@ -374,13 +264,13 @@ const ICONS={"ArmCannonGreen":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACg
     let last = "";
     setInterval(() => {
       try {
-        const json = JSON.stringify({ key: S.key, spam: S.spam, rate: S.rate, burst: S.burst, pick: S.pick, names: S.names, nolim: S.nolim,
+        const json = JSON.stringify({ key: S.key, spam: S.spam, rate: S.rate, burst: S.burst, pick: S.pick, names: S.names,
           pos: { l: host.offsetLeft, t: host.offsetTop }, min: body.classList.contains("hide") });
         if (json !== last) { localStorage.setItem(KEY, json); last = json; }
       } catch (e) {}
     }, 2000);
 
-    showKey(); setRate(S.rate); setBurst(S.burst); spamSw.classList.toggle("on", S.spam); nolimSw.classList.toggle("on", S.nolim); render();
+    showKey(); setRate(S.rate); setBurst(S.burst); spamSw.classList.toggle("on", S.spam); render();
     status.textContent = "hooked " + Object.keys(ORIG).length + "/" + A.length + (skipped.length ? ", skipped: " + skipped.join(", ") : "");
     console.log("stickman mod loaded: hooked", Object.keys(ORIG).length, "skipped", skipped);
   }
