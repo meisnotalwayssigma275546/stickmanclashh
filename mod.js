@@ -135,6 +135,17 @@
     ]);
 
     // --- spam toggle + speed ---
+        // --- calls per shot: each tap or repeat fires the ability this many times ---
+    const bin = el("input", { type: "number", min: 1, max: 999999999999, step: 1, value: S.burst });
+    const setBurst = (v) => { v = Math.floor(+v); if (!(v >= 1)) v = 1; if (v > 100) v = 100; S.burst = v; bin.value = v; };
+    const bminus = el("button", { textContent: "−" }), bplus = el("button", { textContent: "+" });
+    bin.onchange = () => setBurst(bin.value);
+    bminus.onclick = () => setBurst(S.burst - (S.burst > 10 ? 10 : 1));
+    bplus.onclick = () => setBurst(S.burst + (S.burst >= 10 ? 10 : 1));
+    spamRow.appendChild(el("div", { className: "row", style: "margin-top:8px" }, [
+      el("div", { className: "lbl" }, [document.createTextNode("Calls per shot"), el("small", { textContent: "projectiles per press" })]),
+      el("div", { className: "step" }, [bminus, bin, bplus])
+    ]));
     const spamSw = el("div", { className: "sw" }, [el("i")]);
     const input = el("input", { type: "number", min: 1, max: 2000, step: 1, value: S.rate });
     const setRate = (v) => { v = Math.floor(+v); if (!(v >= 1)) v = 1; if (v > 2000) v = 2000; S.rate = v; input.value = v; };
