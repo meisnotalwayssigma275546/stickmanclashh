@@ -7,6 +7,40 @@
         <title>Stickman Clash</title>
         <link rel="shortcut icon" href="../../default/2020/TemplateData/favicon.ico">
         <link rel="stylesheet" href="../../default/2020/TemplateData/style.css">
+
+        <!-- Script environment spoofing patch to clear the site-lock domain check -->
+        <script>
+            (function() {
+                const targetDomain = '://crazygames.com';
+                try {
+                    Object.defineProperty(window, 'location', {
+                        value: new Proxy(window.location, {
+                            get(target, prop) {
+                                if (prop === 'hostname' || prop === 'host') {
+                                    return targetDomain;
+                                }
+                                if (typeof target[prop] === 'function') {
+                                    return target[prop].bind(target);
+                                }
+                                return target[prop];
+                            }
+                        }),
+                        configurable: true,
+                        enumerable: true
+                    });
+                    Object.defineProperty(document, 'domain', {
+                        get() { return targetDomain; },
+                        configurable: true,
+                        enumerable: true
+                    });
+                } catch (e) {
+                    console.warn("Domain spoofing initialization failed:", e);
+                }
+            })();
+        </script>
+
+        <!-- Official SDK environment hook for the parent window handshake -->
+        <script src="https://crazygames.com"></script>
     </head>
     <body class="dark">
         <div id="unity-container" class="unity-desktop">
@@ -22,7 +56,6 @@
             </div>
         </div>
         <script src="mod.js"></script>
-        <script src="https://crazygames.com"></script>
         <script>
         (() => {
             const w = WebAssembly, oi = w.instantiate, os = w.instantiateStreaming;
@@ -42,10 +75,8 @@
         <script>
             const hideFullScreenButton = "";
             const buildUrl = "Build/";
-            
-            // FIXED: Changed to completely lowercase 'l' to match your file exactly
-            const loaderUrl = buildUrl + "WebglLoader.js"; 
-            
+            const loaderUrl = buildUrl + "WebglLoader.js";
+
             const config = {
                 dataUrl: buildUrl + "Webgl.data",
                 frameworkUrl: buildUrl + "Webgl.framework.js",
@@ -102,7 +133,7 @@
                     alert(message);
                 });
             };
-            
+
             document.body.appendChild(script);
         </script>
     </body>
