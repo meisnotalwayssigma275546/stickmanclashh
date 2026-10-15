@@ -8,39 +8,37 @@
         <link rel="shortcut icon" href="../../default/2020/TemplateData/favicon.ico">
         <link rel="stylesheet" href="../../default/2020/TemplateData/style.css">
 
-        <!-- Script environment spoofing patch to clear the site-lock domain check -->
         <script>
-            (function() {
-                const targetDomain = '://crazygames.com';
-                try {
-                    Object.defineProperty(window, 'location', {
-                        value: new Proxy(window.location, {
-                            get(target, prop) {
-                                if (prop === 'hostname' || prop === 'host') {
-                                    return targetDomain;
-                                }
-                                if (typeof target[prop] === 'function') {
-                                    return target[prop].bind(target);
-                                }
-                                return target[prop];
-                            }
-                        }),
-                        configurable: true,
-                        enumerable: true
-                    });
-                    Object.defineProperty(document, 'domain', {
-                        get() { return targetDomain; },
-                        configurable: true,
-                        enumerable: true
-                    });
-                } catch (e) {
-                    console.warn("Domain spoofing initialization failed:", e);
+            // Mock the CrazyGames SDK object to prevent initialization loops and stack overflows
+            window.CrazyGames = {
+                SDK: {
+                    gameplayStart: function() { console.log("Mock: gameplayStart called"); },
+                    gameplayStop: function() { console.log("Mock: gameplayStop called"); },
+                    loadingStart: function() { console.log("Mock: loadingStart called"); },
+                    loadingStop: function() { console.log("Mock: loadingStop called"); },
+                    happyTime: function() {},
+                    ad: {
+                        requestAd: function(type, callbacks) {
+                            if (callbacks && callbacks.complete) callbacks.complete();
+                            if (callbacks && callbacks.reward) callbacks.reward();
+                        }
+                    },
+                    user: {
+                        getUser: function() { return Promise.resolve(null); },
+                        showAuthPrompt: function() { return Promise.resolve(null); }
+                    },
+                    data: {
+                        setItem: function(key, val) { localStorage.setItem(key, val); },
+                        getItem: function(key) { return Promise.resolve(localStorage.getItem(key)); }
+                    }
                 }
-            })();
-        </script>
+            };
 
-        <!-- Official SDK environment hook for the parent window handshake -->
-        <script src="https://crazygames.com"></script>
+            // Prevent cross-origin parent window security crashes if the game checks window.parent
+            if (window.self === window.top) {
+                window.parent = window;
+            }
+        </script>
     </head>
     <body class="dark">
         <div id="unity-container" class="unity-desktop">
