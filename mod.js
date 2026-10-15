@@ -162,7 +162,7 @@
     bminus.onclick = () => setBurst(S.burst - (S.burst > 10 ? 10 : 1));
     bplus.onclick = () => setBurst(S.burst + (S.burst >= 10 ? 10 : 1));
     spamRow.appendChild(el("div", { className: "row", style: "margin-top:8px" }, [
-      el("div", { className: "lbl" }, [document.createTextNode("Calls per shot"), el("small", { textContent: "projectiles per press, 1 to 100" })]),
+      el("div", { className: "lbl" }, [document.createTextNode("Calls per shot"), el("small", { textContent: "projectiles per press" })]),
       el("div", { className: "step" }, [bminus, bin, bplus])
     ]));
 
