@@ -13,7 +13,7 @@
     let saved = {};
     try { saved = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) {}
     const S = {
-      key: saved.key || "z", spam: saved.spam !== false, rate: saved.rate || 100, burst: saved.burst || 1,
+      key: saved.key || "z", spam: saved.spam !== false, rate: saved.rate || 100,
       pick: saved.pick || "", names: saved.names || {}
     };
 
@@ -120,7 +120,7 @@
 
     const status = el("div", { className: "status" });
     const minBtn = el("button", { className: "min", textContent: "–" });
-    const head = el("div", { className: "h" }, [el("span", { textContent: "Stickman Mod v4" }), minBtn]);
+    const head = el("div", { className: "h" }, [el("span", { textContent: "Stickman Mod v3" }), minBtn]);
 
     // --- keybind ---
     let binding = false;
@@ -153,18 +153,6 @@
       ])
     ]);
     spamSw.onclick = () => { S.spam = !S.spam; spamSw.classList.toggle("on", S.spam); };
-
-    // --- calls per shot: each tap or repeat fires the ability this many times ---
-    const bin = el("input", { type: "number", min: 1, max: 100, step: 1, value: S.burst });
-    const setBurst = (v) => { v = Math.floor(+v); if (!(v >= 1)) v = 1; if (v > 100) v = 100; S.burst = v; bin.value = v; };
-    const bminus = el("button", { textContent: "−" }), bplus = el("button", { textContent: "+" });
-    bin.onchange = () => setBurst(bin.value);
-    bminus.onclick = () => setBurst(S.burst - (S.burst > 10 ? 10 : 1));
-    bplus.onclick = () => setBurst(S.burst + (S.burst >= 10 ? 10 : 1));
-    spamRow.appendChild(el("div", { className: "row", style: "margin-top:8px" }, [
-      el("div", { className: "lbl" }, [document.createTextNode("Calls per shot"), el("small", { textContent: "projectiles per press, 1 to 100" })]),
-      el("div", { className: "step" }, [bminus, bin, bplus])
-    ]));
 
     // --- ability picker ---
     const grid = el("div", { className: "grid" });
@@ -205,8 +193,7 @@
 
     const doFire = () => {
       if (!S.pick) { status.textContent = "pick an ability first"; return; }
-      let r = "fired";
-      for (let i = 0; i < S.burst; i++) { r = fire(S.pick); if (r !== "fired") break; }
+      const r = fire(S.pick);
       if (r !== "fired") status.textContent = r;
     };
     fireBtn.onclick = doFire;
@@ -312,13 +299,13 @@
     let last = "";
     setInterval(() => {
       try {
-        const json = JSON.stringify({ key: S.key, spam: S.spam, rate: S.rate, burst: S.burst, pick: S.pick, names: S.names,
+        const json = JSON.stringify({ key: S.key, spam: S.spam, rate: S.rate, pick: S.pick, names: S.names,
           pos: { l: host.offsetLeft, t: host.offsetTop }, min: body.classList.contains("hide") });
         if (json !== last) { localStorage.setItem(KEY, json); last = json; }
       } catch (e) {}
     }, 2000);
 
-    showKey(); setRate(S.rate); setBurst(S.burst); spamSw.classList.toggle("on", S.spam); render();
+    showKey(); setRate(S.rate); spamSw.classList.toggle("on", S.spam); render();
     status.textContent = "hooked " + Object.keys(ORIG).length + "/" + A.length + (skipped.length ? ", skipped: " + skipped.join(", ") : "");
     console.log("stickman mod loaded: hooked", Object.keys(ORIG).length, "skipped", skipped);
   }
