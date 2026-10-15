@@ -3,14 +3,12 @@
     {
       "source": "/Build/Webgl.wasm",
       "headers": [
-        { "key": "Content-Encoding", "value": "br" },
         { "key": "Content-Type", "value": "application/wasm" }
       ]
     },
     {
       "source": "/Build/Webgl.framework.js",
       "headers": [
-        { "key": "Content-Encoding", "value": "br" },
         { "key": "Content-Type", "value": "application/javascript" }
       ]
     }
