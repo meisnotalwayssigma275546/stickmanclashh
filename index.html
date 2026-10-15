@@ -9,43 +9,39 @@
         <link rel="stylesheet" href="../../default/2020/TemplateData/style.css">
 
         <script>
-            // Bulletproof Mock SDK returning safe integer/primitive types to prevent invoke_ii crashes
+            // Fully Async CrazyGames SDK Mock to prevent main thread blocking and freezes
             window.CrazyGames = {
                 SDK: {
-                    gameplayStart: function() { return 0; },
-                    gameplayStop: function() { return 0; },
-                    loadingStart: function() { return 0; },
-                    loadingStop: function() { return 0; },
-                    happyTime: function() { return 0; },
+                    gameplayStart: function() { return Promise.resolve(); },
+                    gameplayStop: function() { return Promise.resolve(); },
+                    loadingStart: function() { return Promise.resolve(); },
+                    loadingStop: function() { return Promise.resolve(); },
+                    happyTime: function() { return Promise.resolve(); },
                     ad: {
                         requestAd: function(type, callbacks) {
-                            if (callbacks && typeof callbacks.complete === 'function') {
-                                callbacks.complete();
-                            }
-                            if (callbacks && typeof callbacks.reward === 'function') {
-                                callbacks.reward();
-                            }
-                            return 0;
+                            if (callbacks && typeof callbacks.complete === 'function') callbacks.complete();
+                            if (callbacks && typeof callbacks.reward === 'function') callbacks.reward();
+                            return Promise.resolve();
                         },
-                        hasAdBlock: function() { return false; }
+                        hasAdBlock: function() { return Promise.resolve(false); }
                     },
                     user: {
-                        getUser: function() { return 0; },
-                        showAuthPrompt: function() { return 0; }
+                        getUser: function() { return Promise.resolve(null); },
+                        showAuthPrompt: function() { return Promise.resolve(null); }
                     },
                     data: {
                         setItem: function(key, val) {
                             try { localStorage.setItem(key, val); } catch(e) {}
-                            return 0;
+                            return Promise.resolve();
                         },
                         getItem: function(key) {
-                            try { return localStorage.getItem(key) || ""; } catch(e) { return ""; }
+                            try { return Promise.resolve(localStorage.getItem(key) || ""); } catch(e) { return Promise.resolve(""); }
                         }
                     }
                 }
             };
 
-            // Prevent cross-origin parent window security crashes if the game checks window.parent
+            // Prevent cross-origin window crashes
             if (window.self === window.top) {
                 window.parent = window;
             }
