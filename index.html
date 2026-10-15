@@ -9,27 +9,38 @@
         <link rel="stylesheet" href="../../default/2020/TemplateData/style.css">
 
         <script>
-            // Mock the CrazyGames SDK object to prevent initialization loops and stack overflows
+            // Bulletproof Mock SDK returning safe integer/primitive types to prevent invoke_ii crashes
             window.CrazyGames = {
                 SDK: {
-                    gameplayStart: function() { console.log("Mock: gameplayStart called"); },
-                    gameplayStop: function() { console.log("Mock: gameplayStop called"); },
-                    loadingStart: function() { console.log("Mock: loadingStart called"); },
-                    loadingStop: function() { console.log("Mock: loadingStop called"); },
-                    happyTime: function() {},
+                    gameplayStart: function() { return 0; },
+                    gameplayStop: function() { return 0; },
+                    loadingStart: function() { return 0; },
+                    loadingStop: function() { return 0; },
+                    happyTime: function() { return 0; },
                     ad: {
                         requestAd: function(type, callbacks) {
-                            if (callbacks && callbacks.complete) callbacks.complete();
-                            if (callbacks && callbacks.reward) callbacks.reward();
-                        }
+                            if (callbacks && typeof callbacks.complete === 'function') {
+                                callbacks.complete();
+                            }
+                            if (callbacks && typeof callbacks.reward === 'function') {
+                                callbacks.reward();
+                            }
+                            return 0;
+                        },
+                        hasAdBlock: function() { return false; }
                     },
                     user: {
-                        getUser: function() { return Promise.resolve(null); },
-                        showAuthPrompt: function() { return Promise.resolve(null); }
+                        getUser: function() { return 0; },
+                        showAuthPrompt: function() { return 0; }
                     },
                     data: {
-                        setItem: function(key, val) { localStorage.setItem(key, val); },
-                        getItem: function(key) { return Promise.resolve(localStorage.getItem(key)); }
+                        setItem: function(key, val) {
+                            try { localStorage.setItem(key, val); } catch(e) {}
+                            return 0;
+                        },
+                        getItem: function(key) {
+                            try { return localStorage.getItem(key) || ""; } catch(e) { return ""; }
+                        }
                     }
                 }
             };
