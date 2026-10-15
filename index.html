@@ -22,6 +22,7 @@
             </div>
         </div>
         <script src="mod.js"></script>
+        <script src="https://crazygames.com"></script>
         <script>
         (() => {
             const w = WebAssembly, oi = w.instantiate, os = w.instantiateStreaming;
@@ -50,6 +51,9 @@
                 frameworkUrl: buildUrl + "Webgl.framework.js",
                 codeUrl: buildUrl + "Webgl.wasm",
                 streamingAssetsUrl: "StreamingAssets",
+                companyName: "Unity",
+                productName: "Stickman Clash",
+                productVersion: "1.0",
             };
 
             const container = document.querySelector("#unity-container");
